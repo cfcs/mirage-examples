@@ -1,0 +1,12 @@
+*.swp
+*.native
+Makefile
+_build/
+mir-*
+key_gen.ml
+log
+main.ml
+*.xe
+*.xl
+*.xl.in
+*.xml
