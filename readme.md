@@ -29,7 +29,7 @@ This repository is an attempt to simplify the process of getting started with Mi
 
 The parts we will need to get our first unikernel running are:
 - `mirage`: the command-line tool used to generate the require build code and configuration files (think of it like `make`)
-  - `mirage configure`: takes switches like `--unix` or `--xen` to specify the *target* of the build, and `--no-opam` makes it run much faster by refraining from running `opam` package manager to automatically install required modules that you already have
+  - `mirage configure`: takes switches like `--unix` or `--xen` to specify the *target* of the build.
   - `mirage clean`: deletes generated files (like `make clean`)
 - `config.ml`: the `mirage` tool will look for this specially named file in the current directory.
 
@@ -43,7 +43,7 @@ The compiled unikernel can run a set of "jobs" in parallel using the Lwt lightwe
 
 Mirage uses OCaml's type system to be able to accomodate parametric compilation (that is, support different backends). Specifically, you need to be familiar with OCaml's "modules" and the concept of "functors".
 
-Each of the unikernel jobs may depend on various Mirage components like the console to provide console input/output (`V1_LWT.CONSOLE`), or the read-only key-value store (elegantly named `V1_LWT.KV_RO`).
+Each of the unikernel jobs may depend on various Mirage components like the console to provide console input/output (`Mirage_console`), or the read-only key-value store (elegantly named `V1_LWT.KV_RO` **TODO this has been changed in v3**).
 
 To make use of these components in your job, your module needs to be "parameterized over them" - that is, you need to implement the job module as a functor to use these components.
 
@@ -84,7 +84,7 @@ let () =
 Compiling the no-op unikernel:
 
 ```bash
-mirage configure --no-opam && make
+mirage configure && make
 ```
 
 Running the no-op unikernel:
@@ -101,13 +101,13 @@ We make another module to contain this job (`hello_world.ml`):
 ```ocaml
 module type Job_t =
 (* note that providing a signature / module type like this is entirely optional *)
-functor (Console : V1_LWT.CONSOLE) ->
+functor (Console : Mirage_console.S) ->
 sig
-  val start : Console.t -> unit Lwt.t
+  val start : Console.t -> unit Console.io Lwt.t
 end
 
 module Job : Job_t =
-functor (Console : V1_LWT.CONSOLE) ->
+functor (Console : Mirage_console.S) ->
 struct
   let start (my_console : Console.t) =
     Lwt.return (Console.log my_console "Hello, World!")
@@ -138,7 +138,7 @@ let () =
 
 Example run:
 ```
-root@localhost:~/ocaml/mirage-examples# mirage configure --no-opam && make
+root@localhost:~/ocaml/mirage-examples# mirage configure && make
 ocamlbuild -use-ocamlfind -pkgs functoria.runtime,mirage-console.unix,mirage-types.lwt,mirage-unix,mirage.runtime -tags "warn(A-4-41-44),debug,bin_annot,strict_sequence,principal,safe_string" -tag-line "<static*.*>: warn(-32-34)" -cflag -g -lflags -g,-linkpkg main.native
 Finished, 13 targets (0 cached) in 00:00:00.
 ln -nfs _build/main.native mir-mything
@@ -158,13 +158,13 @@ The keys are registered with Mirage using `Key.create` in `config.ml` and are ac
 The hello_xyz job looks like this:
 ```ocaml
 module type Job_t =
-functor (Console : V1_LWT.CONSOLE) ->
+functor (Console : Mirage_console.S) ->
 sig
-  val start : Console.t -> unit Lwt.t
+  val start : Console.t -> unit Console.io Lwt.t
 end
 
 module Job : Job_t =
-functor (Console : V1_LWT.CONSOLE) ->
+functor (Console : Mirage_console.S) ->
 struct
   let start (my_console : Console.t) =
     Lwt.return @@
@@ -173,7 +173,7 @@ struct
 end
 ```
 
-We need to make some modifications to the `config.ml`, but `mirage configure` allows us to have multiple config files in the same directory by using the `-f` switch (see `mirage help configure`), so to avoid cluttering the old one, we create `hello_xyz_config.ml`:
+We need to make some modifications to the `config.ml`, and `mirage configure` used to allows us to have multiple config files in the same directory by using the `-f` switch, but now someone decided it would be a great idea to remove that, so to avoid cluttering the old examples, we create a new directory `hello_xyz` and a `hello_xyz/config.ml`:
 
 ```ocaml
 open Mirage
@@ -199,18 +199,19 @@ let () =
     ]
 ```
 
-Finally we can compile it (note `mirage clean` also defaults to `config.ml`, so you need to pass `-f hello_xyz_config.ml` in order to make it clean files related to `hello_xyz_config.ml`):
+Finally we can compile:
 
 ```
-mirage configure --no-opam -f hello_xyz_config.ml
+cd hello_xyz/
+mirage configure
 make
 ```
 
 Running it looks like:
 ```
-root@localhost:~/ocaml/mirage-examples# ./mir-hello_xyz
+root@localhost:~/ocaml/mirage-examples/hello_xyz# ./mir-hello_xyz
 Hello, John Doe!
-root@localhost:~/ocaml/mirage-examples# ./mir-hello_xyz --name Jane
+root@localhost:~/ocaml/mirage-example/hello_xyzs# ./mir-hello_xyz --name Jane
 Hello, Jane!
 ```
 
