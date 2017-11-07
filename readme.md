@@ -39,7 +39,7 @@ The Mirage ecosystem makes use of the [functoria](https://mirage.github.io/funct
 
 ## Job module structure
 
-The compiled unikernel can run a set of "jobs" in parallel using the Lwt lightweight thread module (a library for cooperative concurrency, like Python's "green threads").
+The compiled unikernel can run a set of "jobs" concurrently using the Lwt lightweight thread module (a library for cooperative concurrency, like Python's "green threads").
 
 Mirage uses OCaml's type system to be able to accomodate parametric compilation (that is, support different backends). Specifically, you need to be familiar with OCaml's "modules" and the concept of "functors".
 
